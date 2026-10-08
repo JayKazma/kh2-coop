@@ -1,1 +1,1 @@
-KH2Coop.exe launcher (frameless, sharp at any scaling), solo test mode (two games on one PC), one-click updates.
+Solo test now works out of the box: the local relay (kh2coop_server.exe) ships in bin. Launcher is KH2Coop.exe; installer KH2CoopSetup.exe.
