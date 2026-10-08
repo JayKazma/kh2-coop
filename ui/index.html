@@ -118,6 +118,10 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
 .primary.danger { background: rgba(255,138,138,.18); color: var(--text); border: 1px solid rgba(255,138,138,.5); box-shadow: none; }
 .primary.danger:hover:not(:disabled) { background: rgba(255,138,138,.28); }
 .hint { font-size: 11px; color: var(--muted); line-height: 1.35; }
+.recent { display: flex; flex-wrap: wrap; gap: 6px; }
+.recent button { height: 24px; padding: 0 9px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,246,238,.08); color: var(--text); font: 600 11px 'JetBrains Mono', Consolas, monospace; }
+.recent button:hover { background: rgba(255,246,238,.18); }
+.recent button b { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; color: var(--text2); margin-left: 6px; }
 .idrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--well); }
 .idrow .k { font-size: 10.5px; font-weight: 700; color: var(--text2); letter-spacing: .4px; }
 .idrow .v { font: 500 13px 'JetBrains Mono', Consolas, monospace; margin-top: 2px; }
@@ -202,8 +206,10 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
       <div class="lbl"><span class="n"><b id="n2">2</b>Connect</span><span id="peerLabel">Friend's SteamID</span></div>
       <div class="seg"><button id="segHost" class="on">I'll host</button><button id="segJoin">I'll join</button><button id="segLocal">Solo test</button></div>
       <div class="row">
-        <input class="in" id="peerId" type="text" placeholder="Other player's 17-digit SteamID" maxlength="17" inputmode="numeric" spellcheck="false">
+        <input class="in" id="peerId" type="text" placeholder="Other player's 17-digit SteamID" maxlength="17" inputmode="numeric" spellcheck="false" list="recentIds" autocomplete="off">
+        <datalist id="recentIds"></datalist>
       </div>
+      <div class="recent hide" id="recent"></div>
       <button class="primary" id="btnConnect" disabled>Connect</button>
       <div class="hint" id="connectHint">Start the game first; your SteamID appears below once Steam is ready.</div>
     </div>
@@ -215,6 +221,7 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
         <div><div class="k">YOUR STEAMID</div><div class="v dim" id="myId">Appears after the game loads</div></div>
         <button class="copy hide" id="btnCopy">Copy</button>
       </div>
+      <div class="idrow hide" id="locRow"><div><div class="k">LOCATION</div><div class="v" id="loc"></div></div><button class="copy hide" id="btnTile">Tile windows</button></div>
       <div class="stats">
         <div class="stat"><div class="k">PING</div><div class="v dim" id="ping">—</div></div>
         <div class="stat"><div class="k">LOSS</div><div class="v dim" id="loss">—</div></div>
@@ -225,7 +232,7 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
   </div>
 
   <div class="log glass" id="logBox">
-    <div class="h"><span class="k">ACTIVITY</span><span class="a"><a id="btnMore">Show more</a><a id="btnLogs">Open log folder</a></span></div>
+    <div class="h"><span class="k">ACTIVITY</span><span class="a"><a id="btnMore">Show more</a><a id="btnCollect" title="Zip the logs to your Desktop for a bug report">Collect logs</a><a id="btnLogs">Open log folder</a></span></div>
     <div class="lines" id="lines"></div>
   </div>
 
@@ -322,6 +329,7 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
     bc.className = 'primary' + (rt ? ' danger' : '');
     bc.disabled = !canConnect && !rt;
     bc.textContent = rt ? 'Disconnect' : local ? 'Connect both' : (s.mode === 'join' ? 'Join host' : 'Start hosting');
+    $('connectHint').classList.toggle('hide', conn);
     $('connectHint').textContent = local ? (s.relayAvailable === false ? 'Needs bin\\kh2coop_server.exe (the local relay). Copy it from the build\u2019s Release folder.'
                                           : rt ? (conn ? 'Linked. Disconnect ends the test but keeps both games open.' : 'Linking through the local relay\u2026')
                                           : both ? 'Load a save in both windows, then connect.' : 'Press Start to open two copies of the game.')
@@ -347,6 +355,30 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
     else p.innerHTML = '';
     p.classList.toggle('hide', !running);
 
+    // location + tiling (solo)
+    var hasLoc = running && !!s.world;
+    $('locRow').classList.toggle('hide', !hasLoc && !(local && both));
+    $('loc').textContent = hasLoc ? s.world + (s.room ? ' \u00b7 ' + s.room : '') : (local && both ? 'Two windows open' : '');
+    $('loc').className = 'v' + (hasLoc ? '' : ' dim');
+    $('btnTile').classList.toggle('hide', !(local && both));
+    $('btnTile').textContent = s.tiled ? 'Re-tile' : 'Tile windows';
+
+    // recent ids (not in solo mode)
+    var rec = s.recent || [], rbox = $('recent'), dl = $('recentIds');
+    var key = rec.join(',') + '|' + s.myId;
+    if (rbox.dataset.key !== key) {
+      rbox.dataset.key = key; rbox.innerHTML = ''; dl.innerHTML = '';
+      rec.forEach(function (id) {
+        if (id === s.myId) return;
+        var o = document.createElement('option'); o.value = id; dl.appendChild(o);
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = id; b.title = 'Use this ID (right-click to forget)';
+        b.onclick = function () { $('peerId').value = id; $('peerId').dispatchEvent(new Event('input')); cmd('setPeer', { peerId: id }); };
+        b.oncontextmenu = function (e) { e.preventDefault(); cmd('forgetRecent', { peerId: id }); };
+        rbox.appendChild(b);
+      });
+    }
+    rbox.classList.toggle('hide', local || rt || rbox.children.length === 0);
+
     // activity
     if (s.lines && s.lines.length > lineCount) {
       var box = $('lines'), atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 4;
@@ -368,9 +400,9 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
       .catch(function () { if (++missed > 6) $('offline').classList.add('show'); });
   }
   if (demo) {
-    var base = { version: '0.2.0', update: '', updateText: 'up to date', updating: false, gameDir: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\KINGDOM HEARTS -HD 1.5+2.5 ReMIX-', cloneMode: true, mode: 'join', peerId: '76561199069387735', gameRunning: false, gamePid: 0, myId: '', runtimeRunning: false, connected: false, ping: null, loss: null, problem: '', lines: ['13:24:02  KH2 Co-op launcher 0.2.0 ready.', '13:24:03  Up to date (0.2.0).'] };
-    if (demo === 'connected') Object.assign(base, { gameRunning: true, gamePid: 12040, myId: '76561198346755207', runtimeRunning: true, connected: true, ping: 48, loss: '0.0', lines: base.lines.concat(['13:25:10  KH2 started (PID 12040). Waiting for the Steam session (load to the title screen)...', '13:25:31  Steam session ready. Your SteamID: 76561198346755207', '13:26:02  Joining 76561199069387735. Waiting for the other player...', '13:26:05  Connected.']) });
-    if (demo === 'solo') Object.assign(base, { mode: 'local', relayAvailable: true, gameRunning: true, gamePid: 12040, game2Running: true, gamePid2: 12988, myId: 'local', runtimeRunning: true, connected: true, ping: 1, loss: '0.0', lines: base.lines.concat(['13:50:10  Two games started (PIDs 12040, 12988). Load a save in both, then press Connect both.', '13:51:02  Local relay on 127.0.0.1:7782; host runtime on PID 12040, friend runtime on PID 12988.', '13:51:05  Connected.']) });
+    var base = { recent: ['76561199069387735'], world: '', room: '', tiled: false, version: '0.2.3', update: '', updateText: 'up to date', updating: false, gameDir: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\KINGDOM HEARTS -HD 1.5+2.5 ReMIX-', cloneMode: true, mode: 'join', peerId: '76561199069387735', gameRunning: false, gamePid: 0, myId: '', runtimeRunning: false, connected: false, ping: null, loss: null, problem: '', lines: ['13:24:02  KH2 Co-op launcher 0.2.0 ready.', '13:24:03  Up to date (0.2.0).'] };
+    if (demo === 'connected') Object.assign(base, { world: 'Port Royal', room: 'room 08', recent: ['76561199069387735', '76561198000000001'], gameRunning: true, gamePid: 12040, myId: '76561198346755207', runtimeRunning: true, connected: true, ping: 48, loss: '0.0', lines: base.lines.concat(['13:25:10  KH2 started (PID 12040). Waiting for the Steam session (load to the title screen)...', '13:25:31  Steam session ready. Your SteamID: 76561198346755207', '13:26:02  Joining 76561199069387735. Waiting for the other player...', '13:26:05  Connected.']) });
+    if (demo === 'solo') Object.assign(base, { world: 'Hollow Bastion', room: 'room 09', tiled: true, mode: 'local', relayAvailable: true, gameRunning: true, gamePid: 12040, game2Running: true, gamePid2: 12988, myId: 'local', runtimeRunning: true, connected: true, ping: 1, loss: '0.0', lines: base.lines.concat(['13:50:10  Two games started (PIDs 12040, 12988). Load a save in both, then press Connect both.', '13:51:02  Local relay on 127.0.0.1:7782; host runtime on PID 12040, friend runtime on PID 12988.', '13:51:05  Connected.']) });
     if (demo === 'ready') Object.assign(base, { gameRunning: true, gamePid: 12040, myId: '76561198346755207', lines: base.lines.concat(['13:25:10  KH2 started (PID 12040).', '13:25:31  Steam session ready. Your SteamID: 76561198346755207']) });
     st = base; render(base);
   } else if (native) {
@@ -394,6 +426,8 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
   $('btnCopy').onclick = function () { if (st && st.myId) { navigator.clipboard.writeText(st.myId).then(function () { toast('SteamID copied'); }, function () { cmd('copyId'); toast('SteamID copied'); }); } };
   $('btnUpdate').onclick = function () { cmd(st && st.update ? 'installUpdate' : 'update'); };
   $('btnLogs').onclick = function () { cmd('openLogs'); };
+  $('btnCollect').onclick = function () { cmd('collectLogs'); toast('Saving logs to the Desktop'); };
+  $('btnTile').onclick = function () { cmd('tile'); };
   $('btnMore').onclick = function () { var b = $('logBox'); b.classList.toggle('open'); $('btnMore').textContent = b.classList.contains('open') ? 'Show less' : 'Show more'; $('lines').scrollTop = $('lines').scrollHeight; };
   function host(msg) { if (native) window.chrome.webview.postMessage(msg); }
   $('btnMin').onclick = function () { if (native) host('minimize'); else cmd('minimize'); };

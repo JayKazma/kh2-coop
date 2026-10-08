@@ -28,6 +28,41 @@ namespace KH2Coop
         [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h, int msg, IntPtr w, IntPtr l);
         [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr h, int attr, ref int value, int size);
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] public static extern bool DeleteFile(string name);
+        [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int hgt, uint flags);
+        [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+        [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+        [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
+        [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc cb, IntPtr l);
+        [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+        [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr h, uint cmd);
+        public delegate bool EnumWindowsProc(IntPtr h, IntPtr l);
+
+        // The main top-level window of a process (KH2 creates its window a while after launch).
+        public static IntPtr MainWindowOf(int pid)
+        {
+            IntPtr found = IntPtr.Zero;
+            EnumWindows(delegate(IntPtr h, IntPtr l)
+            {
+                uint wp; GetWindowThreadProcessId(h, out wp);
+                if ((int)wp != pid || !IsWindowVisible(h) || GetWindow(h, 4) != IntPtr.Zero) return true; // GW_OWNER: skip owned popups
+                found = h; return false;
+            }, IntPtr.Zero);
+            return found;
+        }
+        // Side by side on the primary screen's work area. Fullscreen games ignore it; windowed ones move.
+        public static bool Tile(int pidLeft, int pidRight)
+        {
+            IntPtr a = MainWindowOf(pidLeft), b = MainWindowOf(pidRight);
+            if (a == IntPtr.Zero || b == IntPtr.Zero) return false;
+            var wa = Screen.PrimaryScreen.WorkingArea;
+            int w = wa.Width / 2, h = wa.Height;
+            foreach (var pair in new[] { new { H = a, X = wa.Left }, new { H = b, X = wa.Left + w } })
+            {
+                if (IsIconic(pair.H)) ShowWindow(pair.H, 9);
+                SetWindowPos(pair.H, IntPtr.Zero, pair.X, wa.Top, w, h, 0x0004 | 0x0040); // SWP_NOZORDER | SWP_SHOWWINDOW
+            }
+            return true;
+        }
 
         // Remove the "downloaded from the internet" flag (Zone.Identifier stream) that makes .NET refuse to load DLLs.
         public static void Unblock(string dir)
@@ -100,6 +135,9 @@ namespace KH2Coop
 
         // settings
         public string GameDir = "", Mode = "host", HostId = "", FriendId = "";
+        public List<string> Recent = new List<string>();
+        public string World = "", Room = ""; // from the runtime's room-state lines
+        bool tiled; int tileTries;
         public bool CloneMode = true;
 
         // state
@@ -160,6 +198,8 @@ namespace KH2Coop
                 if (d.TryGetValue("mode", out v) && v != null) Mode = v.ToString();
                 if (d.TryGetValue("hostId", out v) && v != null) HostId = v.ToString();
                 if (d.TryGetValue("friendId", out v) && v != null) FriendId = v.ToString();
+                if (d.TryGetValue("recent", out v) && v is System.Collections.ArrayList)
+                    foreach (var r in (System.Collections.ArrayList)v) if (r != null && Regex.IsMatch(r.ToString(), @"^\d{17}$")) Recent.Add(r.ToString());
             }
             catch { }
         }
@@ -167,7 +207,7 @@ namespace KH2Coop
         {
             try
             {
-                var d = new Dictionary<string, object> { { "gameDir", GameDir }, { "cloneMode", CloneMode }, { "mode", Mode }, { "hostId", HostId }, { "friendId", FriendId } };
+                var d = new Dictionary<string, object> { { "gameDir", GameDir }, { "cloneMode", CloneMode }, { "mode", Mode }, { "hostId", HostId }, { "friendId", FriendId }, { "recent", Recent } };
                 File.WriteAllText(SettingsFile, json.Serialize(d), Encoding.UTF8);
             }
             catch { }
@@ -201,7 +241,8 @@ namespace KH2Coop
                 { "gameRunning", GameAlive }, { "gamePid", GamePid }, { "myId", MyId }, { "launching", Launching },
                 { "game2Running", Game2Alive }, { "gamePid2", GamePid2 }, { "relayAvailable", File.Exists(Relay) },
                 { "runtimeRunning", RuntimeAlive }, { "connected", Connected }, { "ping", Ping }, { "loss", Loss }, { "problem", Problem },
-                { "native", true }, { "lines", l }
+                { "native", true }, { "lines", l }, { "recent", new List<string>(Recent) },
+                { "world", World }, { "room", Room }, { "tiled", tiled }
             };
             return json.Serialize(d);
         }
@@ -403,8 +444,23 @@ namespace KH2Coop
             p.Start(); p.BeginOutputReadLine(); p.BeginErrorReadLine();
             return p;
         }
+        static readonly Dictionary<int, string> WorldNames = new Dictionary<int, string>
+        {
+            { 0x01, "End of Sea" }, { 0x02, "Twilight Town" }, { 0x03, "Destiny Islands" }, { 0x04, "Hollow Bastion" }, { 0x05, "Beast's Castle" },
+            { 0x06, "Olympus Coliseum" }, { 0x07, "Agrabah" }, { 0x08, "Land of Dragons" }, { 0x09, "100 Acre Wood" }, { 0x0A, "Pride Lands" },
+            { 0x0B, "Atlantica" }, { 0x0C, "Disney Castle" }, { 0x0D, "Timeless River" }, { 0x0E, "Halloween Town" }, { 0x0F, "World map" },
+            { 0x10, "Port Royal" }, { 0x11, "Space Paranoids" }, { 0x12, "The World That Never Was" }
+        };
         void ParseRuntimeLine(string line)
         {
+            var rs = Regex.Match(line, @"Room state: world=(\d+) room=(\d+)");
+            if (rs.Success)
+            {
+                int w = int.Parse(rs.Groups[1].Value), r = int.Parse(rs.Groups[2].Value);
+                string name; World = WorldNames.TryGetValue(w, out name) ? name : "World " + w.ToString("X2");
+                Room = "room " + r.ToString("X2");
+                return;
+            }
             if (Regex.IsMatch(line, @"Verified membership|SessionState .*actors=[2-9]")) { if (!Connected) Log("Connected."); Connected = true; Problem = ""; }
             else
             {
@@ -423,6 +479,7 @@ namespace KH2Coop
             if (peer == MyId) { Log("That is your own SteamID. Enter the other player's."); return; }
             bool isHost = Mode != "join";
             if (isHost) FriendId = peer; else HostId = peer;
+            Recent.Remove(peer); Recent.Insert(0, peer); if (Recent.Count > 6) Recent.RemoveRange(6, Recent.Count - 6);
             SaveSettings();
             string ini = WriteIni();
             string desync = Path.Combine(Root, @"build\rig\steam-desync-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"));
@@ -451,7 +508,7 @@ namespace KH2Coop
         {
             bool was = RuntimeAlive;
             foreach (var p in new[] { runtimeA, runtimeB, relay }) { if (Alive(p)) { try { p.Kill(); } catch { } } }
-            runtimeA = runtimeB = relay = null; Connected = false; Ping = null; Loss = null;
+            runtimeA = runtimeB = relay = null; Connected = false; Ping = null; Loss = null; World = ""; Room = "";
             if (was) Log("Disconnected.");
         }
         public void CloseGame()
@@ -490,7 +547,42 @@ namespace KH2Coop
                 case "update": if (!GameAlive) CheckUpdate(); break;
                 case "installUpdate": InstallUpdate(); break;
                 case "openLogs": Directory.CreateDirectory(Logs); try { Process.Start("explorer.exe", Logs); } catch { } break;
+                case "tile": if (GameAlive && Game2Alive) { if (Native.Tile(GamePid, GamePid2)) { tiled = true; Log("Game windows tiled side by side."); } else Log("Could not find both game windows yet; try again in a moment."); } break;
+                case "collectLogs": CollectLogs(); break;
+                case "forgetRecent": { string id = str("peerId") ?? ""; Recent.Remove(id); SaveSettings(); break; }
             }
+        }
+
+        // Zips the newest logs (plus settings and version) to the Desktop for a bug report.
+        void CollectLogs()
+        {
+            try
+            {
+                Directory.CreateDirectory(Logs);
+                string outPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "KH2Coop-logs-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".zip");
+                var files = new DirectoryInfo(Logs).GetFiles().Where(f => f.Length < 60L * 1024 * 1024).OrderByDescending(f => f.LastWriteTimeUtc).Take(40).ToList();
+                using (var zip = ZipFile.Open(outPath, ZipArchiveMode.Create))
+                {
+                    foreach (var f in files)
+                    {
+                        var entry = zip.CreateEntry("logs/" + f.Name, CompressionLevel.Optimal);
+                        using (var src = new FileStream(f.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                        using (var dst = entry.Open()) src.CopyTo(dst);
+                    }
+                    foreach (var name in new[] { "settings.json", "version.txt", "package.json" })
+                    {
+                        string pth = Path.Combine(Root, name); if (!File.Exists(pth)) continue;
+                        var entry = zip.CreateEntry(name, CompressionLevel.Optimal);
+                        using (var src = new FileStream(pth, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (var dst = entry.Open()) src.CopyTo(dst);
+                    }
+                    var info = zip.CreateEntry("launcher-activity.txt");
+                    using (var wr = new StreamWriter(info.Open())) { List<string> l; lock (gate) l = new List<string>(lines); foreach (var ln in l) wr.WriteLine(ln); }
+                }
+                Log("Logs saved to the Desktop: " + Path.GetFileName(outPath));
+                try { Process.Start("explorer.exe", "/select,\"" + outPath + "\""); } catch { }
+            }
+            catch (Exception ex) { Log("Collect logs failed: " + ex.Message); }
         }
 
         // ---- periodic housekeeping (UI thread)
@@ -502,6 +594,8 @@ namespace KH2Coop
                 if (downloadTask != null && downloadTask.IsCompleted) { var t = downloadTask; downloadTask = null; CompleteInstallUpdate(t); }
                 if (launchTask != null && launchTask.IsCompleted) { var t = launchTask; launchTask = null; CompleteStartGame(t); }
                 PollSteamId();
+                if (Mode == "local" && GameAlive && Game2Alive && !tiled && tileTries < 90) { tileTries++; if (Native.Tile(GamePid, GamePid2)) { tiled = true; Log("Game windows tiled side by side."); } }
+                if (!GameAlive) { tiled = false; tileTries = 0; }
                 if (runtimeA != null && !Alive(runtimeA)) { runtimeA = null; Connected = false; Ping = null; Loss = null; Log("Co-op program exited."); if (Alive(runtimeB) || Alive(relay)) StopRuntime(); }
                 if (GamePid != 0 && !GameAlive) { Log("KH2 closed."); GamePid = 0; MyId = ""; StopRuntime(); if (Game2Alive) { try { Process.GetProcessById(GamePid2).Kill(); } catch { } } GamePid2 = 0; }
                 else if (GamePid2 != 0 && !Game2Alive) { Log("Second KH2 closed."); GamePid2 = 0; StopRuntime(); }

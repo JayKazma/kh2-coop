@@ -1,1 +1,1 @@
-Updater can now replace files while the launcher is open (restarts itself when needed). Installer closes a running launcher first. Relay for solo test included.
+Solo test tiles the two game windows side by side. Session panel shows your world and room. Collect logs zips everything for a bug report. Recent SteamIDs remembered.
