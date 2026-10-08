@@ -50,7 +50,8 @@ a { color: var(--text2); } a:hover { color: #fff; }
 .chip.orange { background: var(--orange); color: #fff; }
 .chip.ghost { background: transparent; color: var(--text2); font-weight: 600; }
 .ver { font-size: 11.5px; font-weight: 600; color: var(--text2); padding: 0 6px; white-space: nowrap; }
-.ibtn { width: 30px; height: 30px; border: 0; border-radius: 15px; background: var(--glass2); color: var(--text); font-size: 15px; display: flex; align-items: center; justify-content: center; }
+.ibtn { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 15px; background: var(--glass2); color: var(--text); display: flex; align-items: center; justify-content: center; }
+.ibtn svg { width: 11px; height: 11px; display: block; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; fill: none; }
 .ibtn:hover:not(:disabled) { background: rgba(255,255,255,.28); }
 .ibtn:disabled { opacity: .5; }
 .ubtn { height: 30px; padding: 0 12px; border: 0; border-radius: 15px; background: var(--glass2); color: var(--text); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
@@ -170,8 +171,8 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
     <span class="chip" id="chipState"><i></i><span id="chipStateText">Not running</span></span>
     <span class="ver" id="ver">v—</span>
     <button class="ubtn" id="btnUpdate">Check for updates</button>
-    <button class="ibtn" id="btnMin" aria-label="Minimize" title="Minimize">–</button>
-    <button class="ibtn" id="btnX" aria-label="Close launcher" title="Close launcher">×</button>
+    <button class="ibtn" id="btnMin" aria-label="Minimize" title="Minimize"><svg viewBox="0 0 12 12"><path d="M1.5 6h9"/></svg></button>
+    <button class="ibtn" id="btnX" aria-label="Close launcher" title="Close launcher"><svg viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8"/></svg></button>
   </div>
 
   <div class="hero">
