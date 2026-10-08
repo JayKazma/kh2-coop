@@ -9,7 +9,7 @@ This repository holds the launcher and release packages; the mod source is in th
 ## Install
 
 1. Download [`dist/kh2coop-update.zip`](dist/kh2coop-update.zip) and unzip it anywhere (for example `Documents\KH2 Co-op`).
-2. Run **KH2 Co-op.bat**. Steam must be running and signed in.
+2. Run **KH2Coop.exe**. Steam must be running and signed in.
 3. The launcher checks for updates on every start and installs them with one click.
 
 ## Play
@@ -21,7 +21,9 @@ This repository holds the launcher and release packages; the mod source is in th
 
 ## Files
 
-- `KH2Coop.ps1` – launcher (Windows PowerShell 5.1, no installs)
+- `KH2Coop.exe` – the launcher (C#, .NET Framework 4.x, WebView2). Source in `src\`, rebuild with `build.bat` (uses the csc.exe that ships with Windows)
+- `ui\` – the launcher page, artwork and icon
+- `lib\` – Microsoft WebView2 wrappers
 - `bin\` – `kh2ctl.exe`, `kh2coop_inject.dll`, `kh2coop_runtime_scaffold.exe`
 - `settings.json` – saved game folder, mode and SteamIDs
 - `build\rig\logs\` – game, Steam and co-op logs (attach these when reporting a problem)
@@ -29,7 +31,7 @@ This repository holds the launcher and release packages; the mod source is in th
 ## Releases
 
 `version.txt` at the repository root is the current version. `dist/kh2coop-update.zip` is the matching package
-(`bin\*`, `version.txt`, `KH2Coop.ps1`, licenses) and `dist/notes.txt` the change notes shown before an update.
+(`bin\*`, `ui\*`, `lib\*`, `KH2Coop.exe`, `version.txt`, licenses) and `dist/notes.txt` the change notes shown before an update.
 The launcher reads these three files from the `main` branch.
 
 To publish a new version: build the mod, then

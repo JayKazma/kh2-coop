@@ -1,1 +1,1 @@
-First launcher release: one-click updates, Steam host/join, Sora clone mode, stutter/jitter fixes, first-person crash fix.
+KH2Coop.exe launcher (frameless, sharp at any scaling), solo test mode (two games on one PC), one-click updates.

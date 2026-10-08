@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KH2 Co-op</title>
+<link rel="icon" type="image/png" href="/icon.png">
+<meta name="theme-color" content="#2A1434">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #2A1434; --text: #FFF6EE; --text2: #FFE2C6; --muted: rgba(255,246,238,.72);
+  --orange: #FF7A3C; --orange2: #FF9A5C; --green: #6EE7B7; --amber: #FFD166; --red: #FF8A8A;
+  --glass: rgba(255,255,255,.12); --glass2: rgba(255,255,255,.18); --line: rgba(255,255,255,.3); --well: rgba(20,8,30,.32);
+  --r-sm: 10px; --r-md: 14px; --r-lg: 20px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ink); overflow: hidden; }
+body { color: var(--text); font: 500 13px/1.4 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; user-select: none; -webkit-font-smoothing: antialiased; }
+button, input { font-family: inherit; }
+button { cursor: pointer; transition: background .15s, transform .08s, box-shadow .15s, opacity .15s; }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+a { color: var(--text2); } a:hover { color: #fff; }
+
+.win { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.bg { position: absolute; inset: -3%; background: url(/background.jpg) center center / cover no-repeat; filter: saturate(1.2); transform: scale(1.02); transition: filter .6s; }
+.wash { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(42,20,52,.5) 0%, rgba(42,20,52,.15) 45%, rgba(42,20,52,0) 65%), linear-gradient(120deg, rgba(255,122,60,.26) 0%, rgba(110,40,150,.30) 55%, rgba(30,18,70,.55) 100%); transition: background .6s; }
+.connected .bg { filter: saturate(1.25) brightness(1.03); }
+.connected .wash { background: linear-gradient(90deg, rgba(42,20,52,.5) 0%, rgba(42,20,52,.15) 45%, rgba(42,20,52,0) 65%), linear-gradient(120deg, rgba(255,140,80,.22) 0%, rgba(80,60,170,.30) 55%, rgba(20,30,70,.55) 100%); }
+.vignette { position: absolute; inset: 0; background: radial-gradient(120% 90% at 30% 60%, rgba(0,0,0,0) 40%, rgba(20,8,30,.45) 100%); }
+
+.glass { background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); box-shadow: 0 18px 50px rgba(20,8,30,.28), inset 0 1px 0 rgba(255,255,255,.25); }
+
+/* top bar */
+.bar { position: absolute; top: 16px; left: 16px; right: 16px; height: 46px; padding: 0 8px 0 16px; border-radius: 23px; display: flex; align-items: center; gap: 10px; }
+.bar img { width: 20px; height: 20px; filter: brightness(3); }
+.native .bar { cursor: default; }
+.native .win { border-radius: 0; }
+.brand { font-weight: 800; font-size: 13px; letter-spacing: .6px; }
+.sp { flex: 1; }
+.panel .sp { flex: 1 0 4px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 11px; border-radius: 15px; background: var(--glass2); font-size: 11.5px; font-weight: 700; color: var(--text); white-space: nowrap; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--text2); flex: none; }
+.chip.amber i { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+.chip.green i { background: var(--green); box-shadow: 0 0 10px var(--green); }
+.chip.red i { background: var(--red); box-shadow: 0 0 10px var(--red); }
+.chip.orange { background: var(--orange); color: #fff; }
+.chip.ghost { background: transparent; color: var(--text2); font-weight: 600; }
+.ver { font-size: 11.5px; font-weight: 600; color: var(--text2); padding: 0 6px; white-space: nowrap; }
+.ibtn { width: 30px; height: 30px; border: 0; border-radius: 15px; background: var(--glass2); color: var(--text); font-size: 15px; display: flex; align-items: center; justify-content: center; }
+.ibtn:hover:not(:disabled) { background: rgba(255,255,255,.28); }
+.ibtn:disabled { opacity: .5; }
+.ubtn { height: 30px; padding: 0 12px; border: 0; border-radius: 15px; background: var(--glass2); color: var(--text); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.ubtn:hover:not(:disabled) { background: rgba(255,255,255,.28); }
+.ubtn.hot { background: var(--orange); color: #fff; }
+.ubtn.hot:hover:not(:disabled) { background: var(--orange2); }
+.ubtn:disabled { opacity: .5; }
+
+/* hero */
+.hero { position: absolute; left: 34px; top: 92px; right: 390px; bottom: 76px; display: flex; flex-direction: column; justify-content: flex-start; gap: 10px; max-width: 520px; }
+.over { font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--text2); text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-height: .98; letter-spacing: -1.5px; text-shadow: 0 4px 28px rgba(0,0,0,.45); }
+.lead { font-size: 14px; font-weight: 500; color: var(--text); opacity: .95; text-shadow: 0 1px 8px rgba(0,0,0,.45); max-width: 380px; }
+.cta { margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.start { height: 56px; padding: 0 26px 0 14px; border-radius: 28px; border: 0; background: var(--text); color: var(--ink); font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 12px; box-shadow: 0 14px 34px rgba(0,0,0,.3); }
+.start:hover:not(:disabled) { background: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+.start:disabled { opacity: .7; }
+.start .dot { width: 30px; height: 30px; border-radius: 15px; background: var(--orange); display: flex; align-items: center; justify-content: center; }
+.start.stop { background: rgba(255,246,238,.14); color: var(--text); border: 1px solid var(--line); backdrop-filter: blur(16px); box-shadow: none; }
+.start.stop .dot { background: var(--red); }
+.link { height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,246,238,.08); color: var(--text); font-size: 12.5px; font-weight: 700; backdrop-filter: blur(12px); }
+.link:hover:not(:disabled) { background: rgba(255,246,238,.16); }
+.status { margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.status .chip { background: rgba(20,8,30,.35); backdrop-filter: blur(12px); }
+.status .chip.orange { background: var(--orange); }
+
+/* panel */
+.panel { position: absolute; right: 16px; top: 76px; bottom: 16px; width: 358px; padding: 16px 18px 14px; border-radius: var(--r-lg); display: flex; flex-direction: column; gap: 9px; overflow-y: auto; scrollbar-width: none; }
+.panel::-webkit-scrollbar { display: none; }
+.ph { display: flex; align-items: center; justify-content: space-between; }
+.ph .t { font-weight: 800; font-size: 15px; }
+.ph .s { font-size: 11px; font-weight: 700; color: var(--text2); letter-spacing: .3px; }
+.sec { display: flex; flex-direction: column; gap: 8px; }
+.lbl { font-size: 11px; font-weight: 700; color: var(--text2); display: flex; align-items: center; justify-content: space-between; }
+.lbl .n { display: inline-flex; align-items: center; gap: 7px; }
+.lbl .n b { width: 18px; height: 18px; border-radius: 9px; background: var(--glass2); font-size: 10.5px; font-weight: 800; color: var(--text); display: inline-flex; align-items: center; justify-content: center; }
+.lbl .n b.on { background: var(--orange); color: #fff; }
+.lbl .n b.done { background: var(--green); color: var(--ink); }
+.row { display: flex; gap: 8px; align-items: center; }
+.in { height: 36px; width: 100%; padding: 0 12px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--well); color: var(--text); font: 500 12px 'JetBrains Mono', Consolas, monospace; outline: none; transition: border-color .15s, box-shadow .15s; }
+.in::placeholder { color: rgba(255,246,238,.45); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500; }
+.in:focus { border-color: var(--text); box-shadow: 0 0 0 3px rgba(255,246,238,.15); }
+.in:disabled { opacity: .7; }
+.in.ok { border-color: var(--green); }
+.btn { height: 38px; padding: 0 14px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--glass2); color: var(--text); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.btn:hover:not(:disabled) { background: rgba(255,255,255,.28); }
+.btn:disabled { opacity: .5; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--well); }
+.toggle-row .tt { font-size: 12.5px; font-weight: 700; }
+.toggle-row .td { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.tog { position: relative; width: 44px; height: 26px; flex: none; }
+.tog input { position: absolute; opacity: 0; width: 44px; height: 26px; margin: 0; cursor: pointer; z-index: 2; }
+.tog .t { position: absolute; inset: 0; z-index: 0; border-radius: 13px; background: rgba(255,255,255,.22); transition: background .15s; }
+.tog .k { position: absolute; z-index: 1; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 10px; background: #fff; transition: left .15s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.tog input:checked + .t { background: var(--orange); }
+.tog input:checked + .t + .k { left: 21px; }
+.tog input:disabled + .t { opacity: .7; }
+.seg { display: flex; padding: 3px; gap: 3px; border-radius: 12px; background: var(--well); }
+.seg button { flex: 1; height: 32px; padding: 0 6px; border: 0; border-radius: 9px; background: transparent; color: var(--text); font-size: 12px; font-weight: 700; }
+.seg button.on { background: var(--text); color: var(--ink); font-weight: 800; }
+.seg button:disabled { opacity: .6; }
+.primary { height: 42px; border-radius: 12px; border: 0; background: var(--orange); color: #fff; font-size: 13px; font-weight: 800; letter-spacing: .2px; box-shadow: 0 10px 24px rgba(255,122,60,.35); }
+.primary:hover:not(:disabled) { background: var(--orange2); }
+.primary:disabled { background: rgba(255,255,255,.16); color: rgba(255,246,238,.6); box-shadow: none; }
+.primary.danger { background: rgba(255,138,138,.18); color: var(--text); border: 1px solid rgba(255,138,138,.5); box-shadow: none; }
+.primary.danger:hover:not(:disabled) { background: rgba(255,138,138,.28); }
+.hint { font-size: 11px; color: var(--muted); line-height: 1.35; }
+.idrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--well); }
+.idrow .k { font-size: 10.5px; font-weight: 700; color: var(--text2); letter-spacing: .4px; }
+.idrow .v { font: 500 13px 'JetBrains Mono', Consolas, monospace; margin-top: 2px; }
+.idrow .v.dim { color: rgba(255,246,238,.5); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 12px; }
+.idrow .v { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 290px; }
+.copy { height: 30px; padding: 0 12px; border-radius: 15px; border: 0; background: var(--glass2); color: var(--text); font-size: 11.5px; font-weight: 700; }
+.copy:hover { background: rgba(255,255,255,.3); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat { padding: 7px 10px; border-radius: var(--r-sm); background: var(--well); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .k { font-size: 10px; font-weight: 700; color: var(--text2); letter-spacing: .5px; }
+.stat .v { font-size: 15px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat .v.dim { color: rgba(255,246,238,.45); }
+.stat .v.good { color: var(--green); }
+.party { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; }
+.party div { display: flex; align-items: center; gap: 8px; }
+.party i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.party .dim { color: rgba(255,246,238,.5); }
+
+/* activity drawer */
+.log { position: absolute; left: 16px; bottom: 16px; width: 560px; max-width: calc(100% - 406px); padding: 10px 14px 10px 16px; border-radius: var(--r-md); display: flex; flex-direction: column; gap: 6px; transition: height .2s; }
+.log .h { display: flex; align-items: center; justify-content: space-between; }
+.log .h .k { font-size: 10.5px; font-weight: 800; letter-spacing: 1.5px; color: var(--text2); }
+.log .h .a { display: flex; gap: 12px; }
+.log .h a { font-size: 11px; font-weight: 700; cursor: pointer; }
+.lines { height: 54px; overflow-y: auto; font: 400 11px/1.65 'JetBrains Mono', Consolas, monospace; color: var(--text); user-select: text; scrollbar-width: thin; }
+.log.open .lines { height: 190px; }
+.lines::-webkit-scrollbar { width: 6px; } .lines::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 3px; }
+.lines .ok { color: var(--green); } .lines .bad { color: var(--red); } .lines .t { color: var(--text2); }
+
+.hide { display: none !important; }
+.toast { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); padding: 9px 16px; border-radius: 20px; background: var(--text); color: var(--ink); font-size: 12px; font-weight: 700; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
+.offline { position: absolute; inset: 0; background: rgba(42,20,52,.86); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: var(--text); font-size: 14px; font-weight: 700; }
+.offline small { font-size: 12px; font-weight: 500; color: var(--text2); }
+.offline.show { display: flex; }
+</style>
+</head>
+<body>
+<div class="win" id="win">
+  <div class="bg"></div><div class="wash"></div><div class="vignette"></div>
+
+  <div class="bar glass">
+    <img src="/icon-gold.png" alt="">
+    <div class="brand">KH2 Co-op</div>
+    <div class="sp"></div>
+    <span class="chip" id="chipState"><i></i><span id="chipStateText">Not running</span></span>
+    <span class="ver" id="ver">v—</span>
+    <button class="ubtn" id="btnUpdate">Check for updates</button>
+    <button class="ibtn" id="btnMin" aria-label="Minimize" title="Minimize">–</button>
+    <button class="ibtn" id="btnX" aria-label="Close launcher" title="Close launcher">×</button>
+  </div>
+
+  <div class="hero">
+    <div class="over" id="over">ONLINE CO-OP · STEAM</div>
+    <h1 id="h1">Play KH2<br>together.</h1>
+    <div class="lead" id="lead">A second Sora in your party, over Steam. Start the game, swap SteamIDs, connect.</div>
+    <div class="cta">
+      <button class="start" id="btnStart"><span class="dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg></span><span id="btnStartText">Start the game</span></button>
+      <button class="link hide" id="btnCloseGame">Close game</button>
+    </div>
+    <div class="status">
+      <span class="chip hide" id="chipPid"></span>
+      <span class="chip orange hide" id="chipClone">Sora clone mode</span>
+      <span class="chip hide" id="chipRole"></span>
+    </div>
+  </div>
+
+  <div class="panel glass">
+    <div class="ph"><span class="t">Session</span><span class="s" id="panelSub">Set up, then connect</span></div>
+
+    <div class="sec" id="secGame">
+      <div class="lbl"><span class="n"><b id="n1" class="on">1</b>Game</span><a id="btnBrowse" style="cursor:pointer">Browse</a></div>
+      <div class="idrow hide" id="gameSummary"><div><div class="k" id="gameSummaryK">RUNNING</div><div class="v dim" id="gameSummaryV"></div></div></div>
+      <input class="in" id="gameDir" type="text" spellcheck="false" placeholder="Folder that contains KINGDOM HEARTS II FINAL MIX.exe">
+      <div class="toggle-row" id="toggleRow">
+        <div><div class="tt">Sora clone mode</div><div class="td" id="cloneHint">Other player appears as a second Sora. Same on both PCs.</div></div>
+        <span class="tog"><input id="clone" type="checkbox" aria-label="Sora clone mode"><span class="t"></span><span class="k"></span></span>
+      </div>
+    </div>
+
+    <div class="sec" id="secConnect">
+      <div class="lbl"><span class="n"><b id="n2">2</b>Connect</span><span id="peerLabel">Friend's SteamID</span></div>
+      <div class="seg"><button id="segHost" class="on">I'll host</button><button id="segJoin">I'll join</button><button id="segLocal">Solo test</button></div>
+      <div class="row">
+        <input class="in" id="peerId" type="text" placeholder="Other player's 17-digit SteamID" maxlength="17" inputmode="numeric" spellcheck="false">
+      </div>
+      <button class="primary" id="btnConnect" disabled>Connect</button>
+      <div class="hint" id="connectHint">Start the game first; your SteamID appears below once Steam is ready.</div>
+    </div>
+
+    <div class="sp"></div>
+
+    <div class="sec">
+      <div class="idrow">
+        <div><div class="k">YOUR STEAMID</div><div class="v dim" id="myId">Appears after the game loads</div></div>
+        <button class="copy hide" id="btnCopy">Copy</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">PING</div><div class="v dim" id="ping">—</div></div>
+        <div class="stat"><div class="k">LOSS</div><div class="v dim" id="loss">—</div></div>
+        <div class="stat"><div class="k">PARTY</div><div class="v dim" id="partyCount">—</div></div>
+      </div>
+      <div class="party" id="party"><div class="dim">Nobody in the party yet</div></div>
+    </div>
+  </div>
+
+  <div class="log glass" id="logBox">
+    <div class="h"><span class="k">ACTIVITY</span><span class="a"><a id="btnMore">Show more</a><a id="btnLogs">Open log folder</a></span></div>
+    <div class="lines" id="lines"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="offline" id="offline"><div>Launcher closed</div><small>Run KH2 Co-op.bat to open it again.</small></div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var st = null, lineCount = 0, missed = 0, editing = {};
+  var demo = /[?&]demo=(\w+)/.exec(location.search); demo = demo ? demo[1] : null;
+
+  var native = !!(window.chrome && window.chrome.webview);
+  function cmd(name, data) {
+    if (demo) return Promise.resolve();
+    var body = Object.assign({ cmd: name }, data || {});
+    if (native) { window.chrome.webview.postMessage(body); return Promise.resolve(); }
+    return fetch('/cmd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(poll).catch(function () {});
+  }
+  function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(e._t); e._t = setTimeout(function () { e.classList.remove('show'); }, 1800); }
+  function setChip(el, cls, text) { el.className = 'chip' + (cls ? ' ' + cls : ''); el.querySelector('span').textContent = text; }
+
+  function render(s) {
+    var running = s.gameRunning, rt = s.runtimeRunning, conn = s.connected, launching = !!s.launching;
+    var local = s.mode === 'local', both = running && s.game2Running;
+    var canConnect = local ? (both && !rt) : (running && !!s.myId && !rt);
+    $('win').classList.toggle('connected', conn);
+
+    // top bar
+    $('ver').textContent = 'v' + s.version;
+    var bu = $('btnUpdate');
+    bu.disabled = running || s.updating;
+    bu.classList.toggle('hot', !!s.update && !s.updating);
+    bu.textContent = s.updating ? 'Updating…' : (s.update ? 'Update to v' + s.update : (s.updateText === 'checking' ? 'Checking…' : 'Check for updates'));
+    var cs = $('chipState');
+    if (s.problem) setChip(cs, 'red', s.problem);
+    else if (conn) setChip(cs, 'green', 'Connected');
+    else if (rt) setChip(cs, 'amber', local ? 'Linking the two games…' : s.mode === 'join' ? 'Joining…' : 'Waiting for friend');
+    else if (local && both) setChip(cs, 'amber', 'Two games up');
+    else if (local && running) setChip(cs, 'amber', 'Second game starting');
+    else if (running && s.myId) setChip(cs, 'amber', 'Ready to connect');
+    else if (running) setChip(cs, 'amber', 'Waiting for Steam');
+    else if (launching) setChip(cs, 'amber', 'Starting…');
+    else setChip(cs, '', 'Not running');
+
+    // hero
+    $('over').textContent = local ? 'SOLO TEST \u00b7 TWO GAMES, ONE PC' : 'ONLINE CO-OP \u00b7 STEAM';
+    $('h1').innerHTML = conn ? (local ? 'Both linked.' : 'You\u2019re in.') : (running ? (local ? 'Two games up.' : 'Game is up.') : (local ? 'Test alone,<br>two games.' : 'Play KH2<br>together.'));
+    var relayMissing = local && s.relayAvailable === false;
+    if (relayMissing && !s.problem) setChip(cs, 'red', 'Relay file missing');
+    $('lead').textContent = local ? (relayMissing ? 'Solo test needs bin\\kh2coop_server.exe (the local relay from the mod build). Put it in the launcher\u2019s bin folder and this unlocks.' : conn ? 'Change rooms in the first window; the second Sora follows. Only the focused window takes your controls.'
+                                    : both ? 'Load a save in both windows, then press Connect both.'
+                                    : running ? 'Waiting for the second copy to start.'
+                                    : 'Runs two copies of KH2 on this PC through a local relay, no Steam needed. Set the game to windowed first.')
+                          : conn ? (s.mode === 'host' ? 'Your friend joins your party after the next room change.' : 'You appear in the host\u2019s party after the next room change.')
+                          : running ? (s.myId ? 'Swap SteamIDs with the other player, then connect.' : 'Load to the title screen so Steam can start the session.')
+                          : 'A second Sora in your party, over Steam. Start the game, swap SteamIDs, connect.';
+    var bs = $('btnStart');
+    bs.classList.toggle('hide', running);
+    bs.disabled = launching;
+    $('btnStartText').textContent = launching ? 'Starting…' : (local ? 'Start two games' : 'Start the game');
+    bs.disabled = launching || (local && s.relayAvailable === false);
+    $('btnCloseGame').classList.toggle('hide', !running);
+    $('chipPid').classList.toggle('hide', !running); $('chipPid').innerHTML = '<i class="hide"></i><span>' + (local && both ? 'KH2 ×2 · PIDs ' + s.gamePid + ', ' + s.gamePid2 : 'KH2 running · PID ' + s.gamePid) + '</span>';
+    $('chipClone').classList.toggle('hide', !s.cloneMode);
+    $('chipRole').classList.toggle('hide', !rt); $('chipRole').innerHTML = '<i class="hide"></i><span>' + (local ? 'Local relay 127.0.0.1' : (s.mode === 'join' ? 'Joining ' : 'Hosting for ') + (s.peerId || '')) + '</span>';
+
+    // panel: game
+    if (!editing.gameDir) $('gameDir').value = s.gameDir || '';
+    if (document.activeElement !== $('clone')) $('clone').checked = !!s.cloneMode;
+    $('gameDir').disabled = running || launching; $('clone').disabled = running || launching;
+    $('btnBrowse').style.visibility = (running || launching) ? 'hidden' : '';
+    $('cloneHint').textContent = running ? 'Locked while the game is running.' : 'Other player appears as a second Sora. Same on both PCs.';
+    $('gameDir').classList.toggle('hide', running); $('toggleRow').classList.toggle('hide', running);
+    $('gameSummary').classList.toggle('hide', !running);
+    $('gameSummaryK').textContent = 'KH2 RUNNING \u00b7 PID ' + s.gamePid + (s.cloneMode ? ' \u00b7 CLONE MODE ON' : '');
+    $('gameSummaryV').textContent = (s.gameDir || '').replace(/^.*[\\\/]/, '') || s.gameDir;
+    $('secGame').style.opacity = running ? '.75' : '';
+    var n1 = $('n1'); n1.className = running ? 'done' : 'on'; n1.textContent = running ? '\u2713' : '1';
+    $('panelSub').textContent = conn ? 'Live' : rt ? 'Connecting' : running ? 'Step 2 of 2' : 'Set up, then connect';
+
+    // panel: connect
+    var n2 = $('n2'); n2.className = rt ? 'done' : (canConnect ? 'on' : ''); n2.textContent = rt ? '\u2713' : '2';
+    $('secConnect').style.opacity = (running || rt) ? '' : '.6';
+    if (!editing.peerId) $('peerId').value = s.peerId || '';
+    $('segHost').classList.toggle('on', s.mode === 'host'); $('segJoin').classList.toggle('on', s.mode === 'join'); $('segLocal').classList.toggle('on', local);
+    var lockMode = rt || running || launching;
+    $('segHost').disabled = lockMode; $('segJoin').disabled = lockMode; $('segLocal').disabled = lockMode; $('peerId').disabled = rt;
+    $('peerLabel').textContent = local ? 'Two games on this PC' : s.mode === 'join' ? "Host's SteamID" : "Friend's SteamID";
+    $('peerId').classList.toggle('hide', local);
+    $('peerId').classList.toggle('ok', /^\d{17}$/.test($('peerId').value) && $('peerId').value !== s.myId);
+    var bc = $('btnConnect');
+    bc.className = 'primary' + (rt ? ' danger' : '');
+    bc.disabled = !canConnect && !rt;
+    bc.textContent = rt ? 'Disconnect' : local ? 'Connect both' : (s.mode === 'join' ? 'Join host' : 'Start hosting');
+    $('connectHint').textContent = local ? (s.relayAvailable === false ? 'Needs bin\\kh2coop_server.exe (the local relay). Copy it from the build\u2019s Release folder.'
+                                          : rt ? (conn ? 'Linked. Disconnect ends the test but keeps both games open.' : 'Linking through the local relay\u2026')
+                                          : both ? 'Load a save in both windows, then connect.' : 'Press Start to open two copies of the game.')
+                                 : rt ? (conn ? 'Session active. Disconnect ends co-op but keeps the game open.' : 'Waiting for the other player\u2026')
+                                      : canConnect ? 'Enter the other player\u2019s SteamID, then ' + (s.mode === 'join' ? 'join.' : 'start hosting.')
+                                      : 'Start the game first; your SteamID appears below once Steam is ready.';
+
+    // panel: session
+    var my = $('myId'); my.textContent = local ? 'Not needed for a solo test' : (s.myId || 'Appears after the game loads'); my.className = 'v' + (s.myId && !local ? '' : ' dim');
+    $('btnCopy').classList.toggle('hide', !s.myId || local);
+    var ping = $('ping'), loss = $('loss'), pc = $('partyCount');
+    ping.textContent = conn && s.ping != null ? s.ping + ' ms' : '\u2014'; ping.className = 'v' + (conn && s.ping != null ? ' good' : ' dim');
+    loss.textContent = conn && s.loss != null ? s.loss + '%' : '\u2014'; loss.className = 'v' + (conn && s.loss != null ? (parseFloat(s.loss) > 2 ? '' : ' good') : ' dim');
+    pc.textContent = conn ? '2 / 2' : (running ? '1 / 2' : '\u2014'); pc.className = 'v' + (conn ? ' good' : ' dim');
+    var p = $('party');
+    if (conn && local) {
+      p.innerHTML = '<div><i style="background:#FF7A3C"></i>Window 1 \u00b7 Sora, host</div><div><i style="background:#FFD166"></i>Window 2 \u00b7 ' + (s.cloneMode ? 'Sora clone' : 'Donald\u2019s slot') + '</div>';
+    } else if (conn) {
+      var me = '<div><i style="background:#FF7A3C"></i>You \u00b7 ' + (s.mode === 'host' ? 'Sora, host' : 'Sora' + (s.cloneMode ? ' clone' : '')) + '</div>';
+      var other = '<div><i style="background:#FFD166"></i>' + (s.mode === 'host' ? 'Friend' : 'Host') + ' \u00b7 ' + (s.mode === 'host' ? (s.cloneMode ? 'Sora clone' : 'Donald\u2019s slot') : 'Sora, host') + '</div>';
+      p.innerHTML = s.mode === 'host' ? me + other : other + me;
+    } else if (running) p.innerHTML = '<div><i style="background:#FF7A3C"></i>You \u00b7 Sora</div><div class="dim">Waiting for the other player</div>';
+    else p.innerHTML = '';
+    p.classList.toggle('hide', !running);
+
+    // activity
+    if (s.lines && s.lines.length > lineCount) {
+      var box = $('lines'), atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 4;
+      for (var i = lineCount; i < s.lines.length; i++) {
+        var d = document.createElement('div'), t = s.lines[i], m = /^(\d\d:\d\d:\d\d)\s+(.*)$/.exec(t);
+        var cls = /Connected|Up to date|Updated|ready|Verified/.test(t) ? 'ok' : /failed|Failed|refused|problem|wrong|Missing|Error|error/.test(t) ? 'bad' : '';
+        if (m) { var ts = document.createElement('span'); ts.className = 't'; ts.textContent = m[1] + '  '; d.appendChild(ts); d.appendChild(document.createTextNode(m[2])); } else d.textContent = t;
+        if (cls) d.classList.add(cls);
+        box.appendChild(d);
+      }
+      lineCount = s.lines.length;
+      if (atEnd) box.scrollTop = box.scrollHeight;
+    } else if (s.lines && s.lines.length < lineCount) { $('lines').innerHTML = ''; lineCount = 0; }
+  }
+
+  function poll() {
+    if (demo) return;
+    fetch('/state').then(function (r) { return r.json(); }).then(function (s) { missed = 0; st = s; render(s); $('offline').classList.remove('show'); })
+      .catch(function () { if (++missed > 6) $('offline').classList.add('show'); });
+  }
+  if (demo) {
+    var base = { version: '0.2.0', update: '', updateText: 'up to date', updating: false, gameDir: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\KINGDOM HEARTS -HD 1.5+2.5 ReMIX-', cloneMode: true, mode: 'join', peerId: '76561199069387735', gameRunning: false, gamePid: 0, myId: '', runtimeRunning: false, connected: false, ping: null, loss: null, problem: '', lines: ['13:24:02  KH2 Co-op launcher 0.2.0 ready.', '13:24:03  Up to date (0.2.0).'] };
+    if (demo === 'connected') Object.assign(base, { gameRunning: true, gamePid: 12040, myId: '76561198346755207', runtimeRunning: true, connected: true, ping: 48, loss: '0.0', lines: base.lines.concat(['13:25:10  KH2 started (PID 12040). Waiting for the Steam session (load to the title screen)...', '13:25:31  Steam session ready. Your SteamID: 76561198346755207', '13:26:02  Joining 76561199069387735. Waiting for the other player...', '13:26:05  Connected.']) });
+    if (demo === 'solo') Object.assign(base, { mode: 'local', relayAvailable: true, gameRunning: true, gamePid: 12040, game2Running: true, gamePid2: 12988, myId: 'local', runtimeRunning: true, connected: true, ping: 1, loss: '0.0', lines: base.lines.concat(['13:50:10  Two games started (PIDs 12040, 12988). Load a save in both, then press Connect both.', '13:51:02  Local relay on 127.0.0.1:7782; host runtime on PID 12040, friend runtime on PID 12988.', '13:51:05  Connected.']) });
+    if (demo === 'ready') Object.assign(base, { gameRunning: true, gamePid: 12040, myId: '76561198346755207', lines: base.lines.concat(['13:25:10  KH2 started (PID 12040).', '13:25:31  Steam session ready. Your SteamID: 76561198346755207']) });
+    st = base; render(base);
+  } else if (native) {
+    window.chrome.webview.addEventListener('message', function (e) { var s = e.data; if (s && typeof s === 'object' && 'version' in s) { st = s; render(s); } });
+  } else { setInterval(poll, 350); poll(); }
+
+  $('btnStart').onclick = function () { cmd('start', { gameDir: $('gameDir').value, cloneMode: $('clone').checked }); };
+  $('btnBrowse').onclick = function () { cmd('browse'); };
+  $('clone').onchange = function () { cmd('setClone', { cloneMode: $('clone').checked }); };
+  $('gameDir').onfocus = function () { editing.gameDir = true; };
+  $('gameDir').onblur = function () { editing.gameDir = false; cmd('setGameDir', { gameDir: $('gameDir').value }); };
+  $('segHost').onclick = function () { cmd('setMode', { mode: 'host' }); };
+  $('segJoin').onclick = function () { cmd('setMode', { mode: 'join' }); };
+  $('segLocal').onclick = function () { cmd('setMode', { mode: 'local' }); };
+  $('peerId').onfocus = function () { editing.peerId = true; };
+  $('peerId').oninput = function () { if (st) $('peerId').classList.toggle('ok', /^\d{17}$/.test($('peerId').value) && $('peerId').value !== st.myId); };
+  $('peerId').onblur = function () { editing.peerId = false; cmd('setPeer', { peerId: $('peerId').value.trim() }); };
+  $('peerId').onkeydown = function (e) { if (e.key === 'Enter') { $('peerId').blur(); if (!$('btnConnect').disabled) $('btnConnect').click(); } };
+  $('btnConnect').onclick = function () { if (st && st.runtimeRunning) cmd('disconnect'); else cmd('connect', { peerId: st && st.mode === 'local' ? '' : $('peerId').value.trim() }); };
+  $('btnCloseGame').onclick = function () { if (confirm('Close Kingdom Hearts II?')) cmd('closeGame'); };
+  $('btnCopy').onclick = function () { if (st && st.myId) { navigator.clipboard.writeText(st.myId).then(function () { toast('SteamID copied'); }, function () { cmd('copyId'); toast('SteamID copied'); }); } };
+  $('btnUpdate').onclick = function () { cmd(st && st.update ? 'installUpdate' : 'update'); };
+  $('btnLogs').onclick = function () { cmd('openLogs'); };
+  $('btnMore').onclick = function () { var b = $('logBox'); b.classList.toggle('open'); $('btnMore').textContent = b.classList.contains('open') ? 'Show less' : 'Show more'; $('lines').scrollTop = $('lines').scrollHeight; };
+  function host(msg) { if (native) window.chrome.webview.postMessage(msg); }
+  $('btnMin').onclick = function () { if (native) host('minimize'); else cmd('minimize'); };
+  $('btnX').onclick = function () { if (native) host('close'); else if (!st || !st.runtimeRunning || confirm('Closing the launcher disconnects co-op (the game stays open). Close?')) cmd('closeUi'); };
+  document.querySelector('.bar').addEventListener('mousedown', function (e) { if (native && e.button === 0 && !e.target.closest('button,input,a')) { e.preventDefault(); host('drag'); } });
+  if (native) document.body.classList.add('native');
+  window.addEventListener('beforeunload', function () { if (!demo && !native) navigator.sendBeacon('/cmd', JSON.stringify({ cmd: 'uiClosed' })); });
+})();
+</script>
+</body>
+</html>

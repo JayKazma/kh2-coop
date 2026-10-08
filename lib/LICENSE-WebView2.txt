@@ -1,0 +1,2 @@
+Microsoft.Web.WebView2 1.0.4258.31 — Microsoft Edge WebView2 SDK.
+Redistributed under the Microsoft Software License Terms for the WebView2 SDK (see the NuGet package's LICENSE and NOTICE).

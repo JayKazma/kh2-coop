@@ -28,8 +28,19 @@ def main() -> None:
     (stage / 'bin').mkdir(parents=True)
     for f in BINARIES:
         shutil.copyfile(src / f, stage / 'bin' / f)
-    for f in ('KH2Coop.ps1', 'KH2 Co-op.bat', 'README.md'):
+    if (src / 'kh2coop_server.exe').exists():   # local relay for the solo test (optional)
+        shutil.copyfile(src / 'kh2coop_server.exe', stage / 'bin' / 'kh2coop_server.exe')
+    for f in ('KH2Coop.exe', 'KH2Coop.exe.config', 'KH2Coop.ps1', 'build.bat', 'README.md'):
         shutil.copyfile(ROOT / f, stage / f)
+    (stage / 'src').mkdir()
+    for f in (ROOT / 'src').iterdir():
+        shutil.copyfile(f, stage / 'src' / f.name)
+    (stage / 'ui').mkdir()
+    for f in (ROOT / 'ui').iterdir():
+        if f.is_file():
+            shutil.copyfile(f, stage / 'ui' / f.name)
+    if (ROOT / 'lib').is_dir():   # WebView2 wrappers for the frameless window (optional; Edge app window otherwise)
+        shutil.copytree(ROOT / 'lib', stage / 'lib')
     (stage / 'licenses').mkdir()
     for f in (ROOT / 'licenses').iterdir():
         shutil.copyfile(f, stage / 'licenses' / f.name)
