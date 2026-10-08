@@ -5,3 +5,10 @@ mcs -nologo -sdk:4.8 -target:winexe -platform:x64 -optimize+ -langversion:5 -win
   -r:System.dll -r:System.Core.dll -r:System.Drawing.dll -r:System.Windows.Forms.dll -r:System.Web.Extensions.dll \
   -r:System.IO.Compression.dll -r:System.IO.Compression.FileSystem.dll \
   -r:lib/Microsoft.Web.WebView2.Core.dll -r:lib/Microsoft.Web.WebView2.WinForms.dll src/Program.cs
+
+# Installer: embeds dist/kh2coop-update.zip (build the package first with tools/make_release.py).
+if [ -f dist/kh2coop-update.zip ]; then
+mcs -nologo -sdk:4.8 -target:winexe -platform:x64 -optimize+ -langversion:5 -win32icon:ui/icon.ico -out:dist/KH2CoopSetup.exe \
+  -resource:dist/kh2coop-update.zip,payload.zip \
+  -r:System.dll -r:System.Core.dll -r:System.Drawing.dll -r:System.Windows.Forms.dll -r:System.IO.Compression.dll -r:System.IO.Compression.FileSystem.dll src/Setup.cs
+fi

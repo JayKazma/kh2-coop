@@ -8,8 +8,8 @@ This repository holds the launcher and release packages; the mod source is in th
 
 ## Install
 
-1. Download [`dist/kh2coop-update.zip`](dist/kh2coop-update.zip) and unzip it anywhere (for example `Documents\KH2 Co-op`).
-2. Run **KH2Coop.exe**. Steam must be running and signed in.
+1. Download [**KH2CoopSetup.exe**](https://raw.githubusercontent.com/JayKazma/kh2-coop/main/dist/KH2CoopSetup.exe) and run it (choose a folder, it makes the shortcuts). Or unzip [`dist/kh2coop-update.zip`](dist/kh2coop-update.zip) anywhere and run `KH2Coop.exe`.
+2. Steam must be running and signed in. Windows Defender may ask once about the mod's DLL; allow it.
 3. The launcher checks for updates on every start and installs them with one click.
 
 ## Play
