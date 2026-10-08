@@ -33,6 +33,10 @@ namespace KH2Coop
         [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
         [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
         [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc cb, IntPtr l);
+        [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr h, int idx);
+        [DllImport("user32.dll")] public static extern int SetWindowLong(IntPtr h, int idx, int val);
+        [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+        [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
         [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
         [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr h, uint cmd);
         public delegate bool EnumWindowsProc(IntPtr h, IntPtr l);
@@ -49,19 +53,28 @@ namespace KH2Coop
             }, IntPtr.Zero);
             return found;
         }
-        // Side by side on the primary screen's work area. Fullscreen games ignore it; windowed ones move.
-        public static bool Tile(int pidLeft, int pidRight)
+        // Side by side on the primary screen's work area. A borderless (fullscreen-window) game gets its
+        // frame back first; a game in exclusive fullscreen cannot be moved from outside.
+        // Returns 0 = windows not found yet, 1 = moved, 2 = already in place.
+        public static int Tile(int pidLeft, int pidRight)
         {
             IntPtr a = MainWindowOf(pidLeft), b = MainWindowOf(pidRight);
-            if (a == IntPtr.Zero || b == IntPtr.Zero) return false;
+            if (a == IntPtr.Zero || b == IntPtr.Zero) return 0;
             var wa = Screen.PrimaryScreen.WorkingArea;
-            int w = wa.Width / 2, h = wa.Height;
+            int w = wa.Width / 2, h = wa.Height, moved = 0;
             foreach (var pair in new[] { new { H = a, X = wa.Left }, new { H = b, X = wa.Left + w } })
             {
+                RECT r; GetWindowRect(pair.H, out r);
+                const int GWL_STYLE = -16, WS_CAPTION = 0x00C00000, WS_OVERLAPPEDWINDOW = 0x00CF0000;
+                int style = GetWindowLong(pair.H, GWL_STYLE);
+                bool borderless = (style & WS_CAPTION) != WS_CAPTION;
+                if (!borderless && !IsIconic(pair.H) && r.L == pair.X && r.T == wa.Top && r.R - r.L == w && r.B - r.T == h) continue;
+                if (borderless) SetWindowLong(pair.H, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
                 if (IsIconic(pair.H)) ShowWindow(pair.H, 9);
-                SetWindowPos(pair.H, IntPtr.Zero, pair.X, wa.Top, w, h, 0x0004 | 0x0040); // SWP_NOZORDER | SWP_SHOWWINDOW
+                SetWindowPos(pair.H, IntPtr.Zero, pair.X, wa.Top, w, h, 0x0004 | 0x0040 | 0x0020); // SWP_NOZORDER | SWP_SHOWWINDOW | SWP_FRAMECHANGED
+                moved++;
             }
-            return true;
+            return moved > 0 ? 1 : 2;
         }
 
         // Remove the "downloaded from the internet" flag (Zone.Identifier stream) that makes .NET refuse to load DLLs.
@@ -547,7 +560,7 @@ namespace KH2Coop
                 case "update": if (!GameAlive) CheckUpdate(); break;
                 case "installUpdate": InstallUpdate(); break;
                 case "openLogs": Directory.CreateDirectory(Logs); try { Process.Start("explorer.exe", Logs); } catch { } break;
-                case "tile": if (GameAlive && Game2Alive) { if (Native.Tile(GamePid, GamePid2)) { tiled = true; Log("Game windows tiled side by side."); } else Log("Could not find both game windows yet; try again in a moment."); } break;
+                case "tile": if (GameAlive && Game2Alive) { int t = Native.Tile(GamePid, GamePid2); tileTries = 0; if (t == 0) Log("Could not find both game windows yet; try again in a moment."); else { tiled = true; Log(t == 1 ? "Game windows tiled side by side." : "Game windows are already tiled. If a game stays fullscreen, set it to Windowed in its Config menu."); } } break;
                 case "collectLogs": CollectLogs(); break;
                 case "forgetRecent": { string id = str("peerId") ?? ""; Recent.Remove(id); SaveSettings(); break; }
             }
@@ -594,7 +607,9 @@ namespace KH2Coop
                 if (downloadTask != null && downloadTask.IsCompleted) { var t = downloadTask; downloadTask = null; CompleteInstallUpdate(t); }
                 if (launchTask != null && launchTask.IsCompleted) { var t = launchTask; launchTask = null; CompleteStartGame(t); }
                 PollSteamId();
-                if (Mode == "local" && GameAlive && Game2Alive && !tiled && tileTries < 90) { tileTries++; if (Native.Tile(GamePid, GamePid2)) { tiled = true; Log("Game windows tiled side by side."); } }
+                // Keep the two windows side by side for the first ~3 minutes: KH2 re-applies its own display mode
+                // after its splash and again after the first load, which undoes a single early tile.
+                if (Mode == "local" && GameAlive && Game2Alive && tileTries < 500) { tileTries++; int t = Native.Tile(GamePid, GamePid2); if (t == 1 && !tiled) { tiled = true; Log("Game windows tiled side by side."); } }
                 if (!GameAlive) { tiled = false; tileTries = 0; }
                 if (runtimeA != null && !Alive(runtimeA)) { runtimeA = null; Connected = false; Ping = null; Loss = null; Log("Co-op program exited."); if (Alive(runtimeB) || Alive(relay)) StopRuntime(); }
                 if (GamePid != 0 && !GameAlive) { Log("KH2 closed."); GamePid = 0; MyId = ""; StopRuntime(); if (Game2Alive) { try { Process.GetProcessById(GamePid2).Kill(); } catch { } } GamePid2 = 0; }
