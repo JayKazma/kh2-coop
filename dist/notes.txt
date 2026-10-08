@@ -1,0 +1,1 @@
+First launcher release: one-click updates, Steam host/join, Sora clone mode, stutter/jitter fixes, first-person crash fix.
