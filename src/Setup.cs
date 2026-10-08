@@ -80,6 +80,12 @@ namespace KH2CoopSetup
             if (working) return;
             string dir = folder.Text.Trim();
             if (dir.Length == 0) { Say("Choose a folder."); return; }
+            if (Process.GetProcessesByName("KH2Coop").Length > 0)
+            {
+                if (MessageBox.Show(this, "KH2 Co-op is open. Close it and continue?", "KH2 Co-op Setup", MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK) return;
+                foreach (var p in Process.GetProcessesByName("KH2Coop")) { try { p.CloseMainWindow(); if (!p.WaitForExit(4000)) p.Kill(); } catch { } }
+                Thread.Sleep(500);
+            }
             working = true; install.Enabled = false; browse.Enabled = false; bar.Visible = true; bar.Value = 0;
             bool mkDesk = desk.Checked, mkMenu = menu.Checked, run = launch.Checked;
             var t = new Thread((ThreadStart)delegate()
@@ -99,7 +105,8 @@ namespace KH2CoopSetup
                             if (e.FullName.EndsWith("/")) { Directory.CreateDirectory(target); continue; }
                             Directory.CreateDirectory(Path.GetDirectoryName(target));
                             if (Path.GetFileName(target).Equals("settings.json", StringComparison.OrdinalIgnoreCase) && File.Exists(target)) continue;
-                            e.ExtractToFile(target, true);
+                            try { e.ExtractToFile(target, true); }
+                            catch (IOException) { string aside = target + ".old"; try { File.Delete(aside); } catch { } File.Move(target, aside); e.ExtractToFile(target, true); }
                             try { Native.DeleteFile(target + ":Zone.Identifier"); } catch { }
                             n++; Progress(10 + Math.Min(70, n * 70 / Math.Max(1, z.Entries.Count)));
                         }

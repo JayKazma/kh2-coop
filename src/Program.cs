@@ -57,7 +57,7 @@ namespace KH2Coop
                 string p = Path.Combine(Path.Combine(Root, "lib"), name);
                 return File.Exists(p) ? Assembly.UnsafeLoadFrom(p) : null;
             };
-            try { string old = Path.Combine(Root, "KH2Coop.old.exe"); if (File.Exists(old)) File.Delete(old); } catch { }
+            CleanOld(Root); CleanOld(Path.Combine(Root, "lib")); CleanOld(Path.Combine(Root, "bin"));
             bool created;
             using (var mutex = new Mutex(true, "KH2CoopLauncher", out created))
             {
@@ -66,6 +66,11 @@ namespace KH2Coop
                 Application.SetCompatibleTextRenderingDefault(false);
                 return Run(args);
             }
+        }
+
+        static void CleanOld(string dir)
+        {
+            try { if (Directory.Exists(dir)) foreach (var f in Directory.GetFiles(dir, "*.old*")) { try { File.Delete(f); } catch { } } } catch { }
         }
 
         static int Run(string[] args)
@@ -254,23 +259,19 @@ namespace KH2Coop
             string stage = t.Result;
             try
             {
+                bool restart = false;
                 foreach (var d in new[] { "bin", "ui", "lib", "licenses" })
                 {
                     string src = Path.Combine(stage, d); if (!Directory.Exists(src)) continue;
-                    CopyDir(src, Path.Combine(Root, d));
+                    bool changed = CopyDir(src, Path.Combine(Root, d));
+                    if (changed && d == "lib") restart = true;   // the wrappers are loaded; new ones only take effect after a restart
                 }
-                foreach (var f in new[] { "version.txt", "KH2COOP-PACKAGE", "package.json", "README.md", "KH2Coop.exe.config", "build.bat" })
+                foreach (var f in new[] { "version.txt", "KH2COOP-PACKAGE", "package.json", "README.md", "KH2Coop.exe.config", "build.bat", "KH2Coop.ps1" })
                 {
-                    string src = Path.Combine(stage, f); if (File.Exists(src)) File.Copy(src, Path.Combine(Root, f), true);
+                    string src = Path.Combine(stage, f); if (File.Exists(src)) ReplaceFile(src, Path.Combine(Root, f));
                 }
-                bool restart = false;
                 string newExe = Path.Combine(stage, "KH2Coop.exe"), me = Path.Combine(Root, "KH2Coop.exe");
-                if (File.Exists(newExe) && !SameFile(newExe, me))
-                {
-                    File.Move(me, Path.Combine(Root, "KH2Coop.old.exe"));
-                    File.Copy(newExe, me, true);
-                    restart = true;
-                }
+                if (File.Exists(newExe) && !SameFile(newExe, me)) { ReplaceFile(newExe, me); restart = true; }
                 try { Directory.Delete(stage, true); } catch { }
                 foreach (var d in new[] { "lib", "bin", "ui" }) Native.Unblock(Path.Combine(Root, d));
                 Update = ""; UpdateText = "up to date";
@@ -280,11 +281,31 @@ namespace KH2Coop
             catch (Exception ex) { Log("Update failed: " + ex.Message); }
         }
         public Action Exit;
-        static void CopyDir(string src, string dst)
+        // Copies a tree; returns true if any file actually changed.
+        static bool CopyDir(string src, string dst)
         {
+            bool changed = false;
             Directory.CreateDirectory(dst);
-            foreach (var f in Directory.GetFiles(src)) File.Copy(f, Path.Combine(dst, Path.GetFileName(f)), true);
-            foreach (var d in Directory.GetDirectories(src)) CopyDir(d, Path.Combine(dst, Path.GetFileName(d)));
+            foreach (var f in Directory.GetFiles(src))
+            {
+                string target = Path.Combine(dst, Path.GetFileName(f));
+                if (SameFile(f, target)) continue;
+                ReplaceFile(f, target); changed = true;
+            }
+            foreach (var d in Directory.GetDirectories(src)) if (CopyDir(d, Path.Combine(dst, Path.GetFileName(d)))) changed = true;
+            return changed;
+        }
+        // Overwrites dst with src. A file that is in use (a loaded DLL, the running exe) cannot be overwritten or
+        // deleted, but it can be renamed: move it aside as *.old and delete that on the next start (CleanOld).
+        static void ReplaceFile(string src, string dst)
+        {
+            try { File.Copy(src, dst, true); return; }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            string aside = dst + ".old";
+            for (int i = 1; File.Exists(aside); i++) { try { File.Delete(aside); break; } catch { aside = dst + ".old" + i; } }
+            File.Move(dst, aside);
+            File.Copy(src, dst, true);
         }
         static bool SameFile(string a, string b)
         {

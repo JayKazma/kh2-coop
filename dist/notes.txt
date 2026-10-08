@@ -1,1 +1,1 @@
-Solo test now works out of the box: the local relay (kh2coop_server.exe) ships in bin. Launcher is KH2Coop.exe; installer KH2CoopSetup.exe.
+Updater can now replace files while the launcher is open (restarts itself when needed). Installer closes a running launcher first. Relay for solo test included.
