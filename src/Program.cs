@@ -157,6 +157,7 @@ namespace KH2Coop
         bool tiled; int tileTries;
         public bool CloneMode = true;
         public bool TileBorderless = true; // solo test: the two game windows meet edge to edge (settings.json "tileBorderless")
+        public bool CastReplay = false;    // replay the other player's magic/items on their clone (settings.json "castReplay"; crashes on Fire as of 0.3.5)
 
         // state
         public int GamePid, GamePid2;
@@ -214,6 +215,7 @@ namespace KH2Coop
                 if (d.TryGetValue("gameDir", out v) && v != null) GameDir = v.ToString();
                 if (d.TryGetValue("cloneMode", out v) && v is bool) CloneMode = (bool)v;
                 if (d.TryGetValue("tileBorderless", out v) && v is bool) TileBorderless = (bool)v;
+                if (d.TryGetValue("castReplay", out v) && v is bool) CastReplay = (bool)v;
                 if (d.TryGetValue("mode", out v) && v != null) Mode = v.ToString();
                 if (d.TryGetValue("hostId", out v) && v != null) HostId = v.ToString();
                 if (d.TryGetValue("friendId", out v) && v != null) FriendId = v.ToString();
@@ -226,7 +228,7 @@ namespace KH2Coop
         {
             try
             {
-                var d = new Dictionary<string, object> { { "gameDir", GameDir }, { "cloneMode", CloneMode }, { "tileBorderless", TileBorderless }, { "mode", Mode }, { "hostId", HostId }, { "friendId", FriendId }, { "recent", Recent } };
+                var d = new Dictionary<string, object> { { "gameDir", GameDir }, { "cloneMode", CloneMode }, { "tileBorderless", TileBorderless }, { "castReplay", CastReplay }, { "mode", Mode }, { "hostId", HostId }, { "friendId", FriendId }, { "recent", Recent } };
                 File.WriteAllText(SettingsFile, json.Serialize(d), Encoding.UTF8);
             }
             catch { }
@@ -385,6 +387,7 @@ namespace KH2Coop
             Problem = ""; GameDir = dir; SaveSettings();
             var env = new Dictionary<string, string> { { "SteamAppId", "2552430" }, { "SteamGameId", "2552430" }, { "KH2COOP_PUPPET_TRACE", "1" }, { "KH2COOP_AVATAR_DIAG", "1" } };
             if (!local) env["KH2COOP_STEAM_BROKER"] = "1";
+            if (CastReplay) env["KH2COOP_CAST_REPLAY"] = "1";
             if (CloneMode) { env["KH2COOP_PARTY_NATIVE"] = "1"; env["KH2COOP_NATIVE_SORA_PRIVATE_STATUS"] = "1"; env["KH2COOP_CLONE_NEUTRAL_INPUT"] = "1"; env["KH2COOP_ALLY_HIT"] = "1"; }
             int count = local ? 2 : 1;
             Log(local ? "Starting two copies of KH2 (solo test)..." : "Starting KH2...");
