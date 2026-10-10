@@ -1,1 +1,1 @@
-Other player's gauge in the game's own party HUD (Sora portrait, live HP). Streamed HP now reads the player's real stats. Clone run/idle twitch fixed. Solo test windows tiled borderless, edge to edge.
+Magic and items cast by the other player now play on their clone (cast motion, effects, sound) through the game's own command path. Network format changed: both players must be on 0.3.2. First test build.
