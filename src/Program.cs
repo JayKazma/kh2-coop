@@ -324,7 +324,7 @@ namespace KH2Coop
                 {
                     string src = Path.Combine(stage, d); if (!Directory.Exists(src)) continue;
                     bool changed = CopyDir(src, Path.Combine(Root, d));
-                    if (changed && d == "lib") restart = true;   // the wrappers are loaded; new ones only take effect after a restart
+                    if (changed && (d == "lib" || d == "ui")) restart = true;   // wrappers are loaded and the page is already shown; both need a restart
                 }
                 foreach (var f in new[] { "version.txt", "KH2COOP-PACKAGE", "package.json", "README.md", "KH2Coop.exe.config", "build.bat", "KH2Coop.ps1" })
                 {
