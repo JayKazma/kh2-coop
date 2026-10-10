@@ -1,1 +1,1 @@
-Keyblade sync: each clone carries its owner's equipped keyblade (protocol 16; both players must be on 0.3.6). Sora clone mode is always on (toggle removed). Spells and items replay on by default. In-game settings (volume etc.) now save normally. Clone attacks no longer hit Donald/Goofy. Crash logging and story-mode clone recovery.
+New launcher layout: pattern background, bottom dock with one Start/Connect button, status pills, activity sheet. Same mod binaries as 0.3.6.
