@@ -1,1 +1,1 @@
-New launcher layout: pattern background, bottom dock with one Start/Connect button, status pills, activity sheet. Same mod binaries as 0.3.6.
+Launcher restarts itself after a UI-only update. New launcher layout (0.3.7).
