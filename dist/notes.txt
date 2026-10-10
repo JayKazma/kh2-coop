@@ -1,1 +1,1 @@
-Fix: 0.3.2/0.3.3 rejected every avatar frame online (relay payload size). Both players must be on 0.3.4.
+Magic replay on clones switched off (it crashed the receiving game). Everything else as 0.3.4. Both players must be on 0.3.5.
