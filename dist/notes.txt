@@ -1,1 +1,1 @@
-Second Sora in guest worlds (Port Royal, Land of Dragons and friends), no more world-map detour for the second player, smooth clone running animation, lower avatar latency (80 ms), more enemy types mirrored, drive gauge fix, downed spectate camera, window tiling and icon fixes in the launcher. Mod source: JayKazma/kh2-multiplayer branch sento/one-clone-stage1 (829a2ca).
+Other player's gauge in the game's own party HUD (Sora portrait, live HP). Streamed HP now reads the player's real stats. Clone run/idle twitch fixed. Solo test windows tiled borderless, edge to edge.
