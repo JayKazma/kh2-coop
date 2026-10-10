@@ -1,1 +1,1 @@
-Magic and items cast by the other player now play on their clone (cast motion, effects, sound) through the game's own command path. Network format changed: both players must be on 0.3.2. First test build.
+Fix: the Steam session never started with builds since 0.3.0 (online host/join hung on 'Waiting for the Steam session'). Includes 0.3.2's cast replay on clones. Both players must be on 0.3.3.
