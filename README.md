@@ -1,41 +1,44 @@
 # KH2 Co-op
 
-Two-player online co-op for **Kingdom Hearts II Final Mix** (Steam, Global build) over Steam networking.
-The second player appears as a second Sora in the host's party.
+Two-player online co-op for **Kingdom Hearts II Final Mix** (Steam, Global build) over Steam.
+The other player appears in your party as a second Sora — same room, same enemies, their own keyblade.
 
-Built on [Volpestyle/kh2-multiplayer](https://github.com/Volpestyle/kh2-multiplayer) (GPL-3.0).
-This repository holds the launcher and release packages; the mod source is in that project.
+## Download
 
-## Install
+**[KH2CoopSetup.exe](https://github.com/JayKazma/kh2-coop/raw/main/dist/KH2CoopSetup.exe)** — run it, pick a folder, and it installs the launcher with shortcuts.
+The launcher keeps itself up to date. Current version: see [`version.txt`](version.txt).
 
-1. Download [**KH2CoopSetup.exe**](https://raw.githubusercontent.com/JayKazma/kh2-coop/main/dist/KH2CoopSetup.exe) and run it (choose a folder, it makes the shortcuts). Or unzip [`dist/kh2coop-update.zip`](dist/kh2coop-update.zip) anywhere and run `KH2Coop.exe`.
-2. Steam must be running and signed in. Windows Defender may ask once about the mod's DLL; allow it.
-3. The launcher checks for updates on every start and installs them with one click.
+Prefer a zip? [`dist/kh2coop-update.zip`](dist/kh2coop-update.zip) unpacks anywhere; run `KH2Coop.exe`.
+
+Steam must be running and signed in. Windows Defender may ask once about the mod's DLL; allow it.
 
 ## Play
 
-1. Both players: **Start KH2** (the launcher finds the game folder; use `...` if it doesn't).
-2. Load into the game. The launcher shows **Your SteamID** once the Steam session is ready; send it to the other player.
-3. One player picks **Host**, the other **Join a host**. Each enters the *other* player's SteamID and presses **Connect**.
-4. The joiner appears in the host's party after the next room change. Keep **Sora clone mode** the same on both PCs.
+1. Both players open the launcher. It finds the game folder (use **Browse** if it doesn't).
+2. Pick **Host** or **Join**, enter the other player's SteamID (yours shows in the launcher once the game is up; click it to copy), press **Start**.
+3. The game starts; when Steam is ready the button becomes **Start hosting** / **Join host**. Press it.
+4. The joiner's Sora appears in the host's party at the next room change.
 
-## Files
+**Solo test**: two windows on one PC through a local relay, tiled side by side.
 
-- `KH2Coop.exe` – the launcher (C#, .NET Framework 4.x, WebView2). Source in `src\`, rebuild with `build.bat` (uses the csc.exe that ships with Windows)
-- `ui\` – the launcher page, artwork and icon
-- `lib\` – Microsoft WebView2 wrappers
-- `bin\` – `kh2ctl.exe`, `kh2coop_inject.dll`, `kh2coop_runtime_scaffold.exe`
-- `settings.json` – saved game folder, mode and SteamIDs
-- `build\rig\logs\` – game, Steam and co-op logs (attach these when reporting a problem)
+## What's in the box
 
-## Releases
+| | |
+| --- | --- |
+| `KH2Coop.exe` | The launcher (C#, .NET Framework 4.x, WebView2). Source in `src\`, page in `ui\` |
+| `bin\` | The mod: `kh2coop_inject.dll` (runs inside KH2), `kh2coop_runtime_scaffold.exe` (Steam session), `kh2coop_server.exe` (local relay), `kh2ctl.exe` (launches the game) |
+| `lib\` | Microsoft WebView2 wrappers |
+| `settings.json` | Game folder, mode and SteamIDs |
+| `build\rig\logs\` | Game, Steam and co-op logs — **Collect logs** in the launcher zips them for a bug report |
 
-`version.txt` at the repository root is the current version. `dist/kh2coop-update.zip` is the matching package
-(`bin\*`, `ui\*`, `lib\*`, `KH2Coop.exe`, `version.txt`, licenses) and `dist/notes.txt` the change notes shown before an update.
-The launcher reads these three files from the `main` branch.
+The mod's source is in [kh2-coop-mod](https://github.com/JayKazma/kh2-coop-mod) (GPL-3.0).
 
-To publish a new version: build the mod, then
+## Releasing a version
 
-    python tools/make_release.py --bin <folder with the three binaries> --version 0.1.1 --notes "what changed"
+`version.txt` is the current version; `dist/kh2coop-update.zip` the matching package and `dist/notes.txt` the
+change notes. Launchers read all three from `main`, so pushing `main` is the release.
 
-and commit `version.txt` and `dist/`.
+    python tools/make_release.py --bin <folder with the mod binaries> --version 0.4.0 --notes "what changed"
+    sh tools/build_exe.sh        # rebuilds KH2Coop.exe and dist/KH2CoopSetup.exe
+
+Commit `version.txt`, `dist/` and `KH2Coop.exe`, push.
