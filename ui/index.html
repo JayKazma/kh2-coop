@@ -185,7 +185,6 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
     </div>
     <div class="status">
       <span class="chip hide" id="chipPid"></span>
-      <span class="chip orange hide" id="chipClone">Sora clone mode</span>
       <span class="chip hide" id="chipRole"></span>
     </div>
   </div>
@@ -197,10 +196,6 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
       <div class="lbl"><span class="n"><b id="n1" class="on">1</b>Game</span><a id="btnBrowse" style="cursor:pointer">Browse</a></div>
       <div class="idrow hide" id="gameSummary"><div><div class="k" id="gameSummaryK">RUNNING</div><div class="v dim" id="gameSummaryV"></div></div></div>
       <input class="in" id="gameDir" type="text" spellcheck="false" placeholder="Folder that contains KINGDOM HEARTS II FINAL MIX.exe">
-      <div class="toggle-row" id="toggleRow">
-        <div><div class="tt">Sora clone mode</div><div class="td" id="cloneHint">Other player appears as a second Sora. Same on both PCs.</div></div>
-        <span class="tog"><input id="clone" type="checkbox" aria-label="Sora clone mode"><span class="t"></span><span class="k"></span></span>
-      </div>
     </div>
 
     <div class="sec" id="secConnect">
@@ -299,18 +294,15 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
     bs.disabled = launching || (local && s.relayAvailable === false);
     $('btnCloseGame').classList.toggle('hide', !running);
     $('chipPid').classList.toggle('hide', !running); $('chipPid').innerHTML = '<i class="hide"></i><span>' + (local && both ? 'KH2 ×2 · PIDs ' + s.gamePid + ', ' + s.gamePid2 : 'KH2 running · PID ' + s.gamePid) + '</span>';
-    $('chipClone').classList.toggle('hide', !s.cloneMode);
     $('chipRole').classList.toggle('hide', !rt); $('chipRole').innerHTML = '<i class="hide"></i><span>' + (local ? 'Local relay 127.0.0.1' : (s.mode === 'join' ? 'Joining ' : 'Hosting for ') + (s.peerId || '')) + '</span>';
 
     // panel: game
     if (!editing.gameDir) $('gameDir').value = s.gameDir || '';
-    if (document.activeElement !== $('clone')) $('clone').checked = !!s.cloneMode;
-    $('gameDir').disabled = running || launching; $('clone').disabled = running || launching;
+    $('gameDir').disabled = running || launching;
     $('btnBrowse').style.visibility = (running || launching) ? 'hidden' : '';
-    $('cloneHint').textContent = running ? 'Locked while the game is running.' : 'Other player appears as a second Sora. Same on both PCs.';
-    $('gameDir').classList.toggle('hide', running); $('toggleRow').classList.toggle('hide', running);
+    $('gameDir').classList.toggle('hide', running);
     $('gameSummary').classList.toggle('hide', !running);
-    $('gameSummaryK').textContent = 'KH2 RUNNING \u00b7 PID ' + s.gamePid + (s.cloneMode ? ' \u00b7 CLONE MODE ON' : '');
+    $('gameSummaryK').textContent = 'KH2 RUNNING \u00b7 PID ' + s.gamePid;
     $('gameSummaryV').textContent = (s.gameDir || '').replace(/^.*[\\\/]/, '') || s.gameDir;
     $('secGame').style.opacity = running ? '.75' : '';
     var n1 = $('n1'); n1.className = running ? 'done' : 'on'; n1.textContent = running ? '\u2713' : '1';
@@ -347,10 +339,10 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
     pc.textContent = conn ? '2 / 2' : (running ? '1 / 2' : '\u2014'); pc.className = 'v' + (conn ? ' good' : ' dim');
     var p = $('party');
     if (conn && local) {
-      p.innerHTML = '<div><i style="background:#FF7A3C"></i>Window 1 \u00b7 Sora, host</div><div><i style="background:#FFD166"></i>Window 2 \u00b7 ' + (s.cloneMode ? 'Sora clone' : 'Donald\u2019s slot') + '</div>';
+      p.innerHTML = '<div><i style="background:#FF7A3C"></i>Window 1 \u00b7 Sora, host</div><div><i style="background:#FFD166"></i>Window 2 \u00b7 Sora clone</div>';
     } else if (conn) {
-      var me = '<div><i style="background:#FF7A3C"></i>You \u00b7 ' + (s.mode === 'host' ? 'Sora, host' : 'Sora' + (s.cloneMode ? ' clone' : '')) + '</div>';
-      var other = '<div><i style="background:#FFD166"></i>' + (s.mode === 'host' ? 'Friend' : 'Host') + ' \u00b7 ' + (s.mode === 'host' ? (s.cloneMode ? 'Sora clone' : 'Donald\u2019s slot') : 'Sora, host') + '</div>';
+      var me = '<div><i style="background:#FF7A3C"></i>You \u00b7 ' + (s.mode === 'host' ? 'Sora, host' : 'Sora clone') + '</div>';
+      var other = '<div><i style="background:#FFD166"></i>' + (s.mode === 'host' ? 'Friend' : 'Host') + ' \u00b7 ' + (s.mode === 'host' ? 'Sora clone' : 'Sora, host') + '</div>';
       p.innerHTML = s.mode === 'host' ? me + other : other + me;
     } else if (running) p.innerHTML = '<div><i style="background:#FF7A3C"></i>You \u00b7 Sora</div><div class="dim">Waiting for the other player</div>';
     else p.innerHTML = '';
@@ -401,7 +393,7 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
       .catch(function () { if (++missed > 6) $('offline').classList.add('show'); });
   }
   if (demo) {
-    var base = { recent: ['76561199069387735'], world: '', room: '', tiled: false, version: '0.2.3', update: '', updateText: 'up to date', updating: false, gameDir: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\KINGDOM HEARTS -HD 1.5+2.5 ReMIX-', cloneMode: true, mode: 'join', peerId: '76561199069387735', gameRunning: false, gamePid: 0, myId: '', runtimeRunning: false, connected: false, ping: null, loss: null, problem: '', lines: ['13:24:02  KH2 Co-op launcher 0.2.0 ready.', '13:24:03  Up to date (0.2.0).'] };
+    var base = { recent: ['76561199069387735'], world: '', room: '', tiled: false, version: '0.2.3', update: '', updateText: 'up to date', updating: false, gameDir: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\KINGDOM HEARTS -HD 1.5+2.5 ReMIX-', mode: 'join', peerId: '76561199069387735', gameRunning: false, gamePid: 0, myId: '', runtimeRunning: false, connected: false, ping: null, loss: null, problem: '', lines: ['13:24:02  KH2 Co-op launcher 0.2.0 ready.', '13:24:03  Up to date (0.2.0).'] };
     if (demo === 'connected') Object.assign(base, { world: 'Port Royal', room: 'room 08', recent: ['76561199069387735', '76561198000000001'], gameRunning: true, gamePid: 12040, myId: '76561198346755207', runtimeRunning: true, connected: true, ping: 48, loss: '0.0', lines: base.lines.concat(['13:25:10  KH2 started (PID 12040). Waiting for the Steam session (load to the title screen)...', '13:25:31  Steam session ready. Your SteamID: 76561198346755207', '13:26:02  Joining 76561199069387735. Waiting for the other player...', '13:26:05  Connected.']) });
     if (demo === 'solo') Object.assign(base, { world: 'Hollow Bastion', room: 'room 09', tiled: true, mode: 'local', relayAvailable: true, gameRunning: true, gamePid: 12040, game2Running: true, gamePid2: 12988, myId: 'local', runtimeRunning: true, connected: true, ping: 1, loss: '0.0', lines: base.lines.concat(['13:50:10  Two games started (PIDs 12040, 12988). Load a save in both, then press Connect both.', '13:51:02  Local relay on 127.0.0.1:7782; host runtime on PID 12040, friend runtime on PID 12988.', '13:51:05  Connected.']) });
     if (demo === 'ready') Object.assign(base, { gameRunning: true, gamePid: 12040, myId: '76561198346755207', lines: base.lines.concat(['13:25:10  KH2 started (PID 12040).', '13:25:31  Steam session ready. Your SteamID: 76561198346755207']) });
@@ -410,9 +402,8 @@ h1 { margin: 0; font-size: clamp(40px, 5.6vw, 56px); font-weight: 800; line-heig
     window.chrome.webview.addEventListener('message', function (e) { var s = e.data; if (s && typeof s === 'object' && 'version' in s) { st = s; render(s); } });
   } else { setInterval(poll, 350); poll(); }
 
-  $('btnStart').onclick = function () { cmd('start', { gameDir: $('gameDir').value, cloneMode: $('clone').checked }); };
+  $('btnStart').onclick = function () { cmd('start', { gameDir: $('gameDir').value }); };
   $('btnBrowse').onclick = function () { cmd('browse'); };
-  $('clone').onchange = function () { cmd('setClone', { cloneMode: $('clone').checked }); };
   $('gameDir').onfocus = function () { editing.gameDir = true; };
   $('gameDir').onblur = function () { editing.gameDir = false; cmd('setGameDir', { gameDir: $('gameDir').value }); };
   $('segHost').onclick = function () { cmd('setMode', { mode: 'host' }); };

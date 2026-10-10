@@ -155,7 +155,6 @@ namespace KH2Coop
         public List<string> Recent = new List<string>();
         public string World = "", Room = ""; // from the runtime's room-state lines
         bool tiled; int tileTries;
-        public bool CloneMode = true;
         public bool TileBorderless = true; // solo test: the two game windows meet edge to edge (settings.json "tileBorderless")
         public bool CastReplay = true;     // replay the other player's magic/items on their clone (settings.json "castReplay")
 
@@ -213,7 +212,6 @@ namespace KH2Coop
                 var d = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(SettingsFile));
                 object v;
                 if (d.TryGetValue("gameDir", out v) && v != null) GameDir = v.ToString();
-                if (d.TryGetValue("cloneMode", out v) && v is bool) CloneMode = (bool)v;
                 if (d.TryGetValue("tileBorderless", out v) && v is bool) TileBorderless = (bool)v;
                 if (d.TryGetValue("castReplay", out v) && v is bool) CastReplay = (bool)v;
                 if (d.TryGetValue("mode", out v) && v != null) Mode = v.ToString();
@@ -228,7 +226,7 @@ namespace KH2Coop
         {
             try
             {
-                var d = new Dictionary<string, object> { { "gameDir", GameDir }, { "cloneMode", CloneMode }, { "tileBorderless", TileBorderless }, { "castReplay", CastReplay }, { "mode", Mode }, { "hostId", HostId }, { "friendId", FriendId }, { "recent", Recent } };
+                var d = new Dictionary<string, object> { { "gameDir", GameDir }, { "tileBorderless", TileBorderless }, { "castReplay", CastReplay }, { "mode", Mode }, { "hostId", HostId }, { "friendId", FriendId }, { "recent", Recent } };
                 File.WriteAllText(SettingsFile, json.Serialize(d), Encoding.UTF8);
             }
             catch { }
@@ -258,7 +256,7 @@ namespace KH2Coop
             var d = new Dictionary<string, object>
             {
                 { "version", LocalVersion() }, { "update", Update }, { "updateText", UpdateText }, { "updating", Updating },
-                { "gameDir", GameDir }, { "cloneMode", CloneMode }, { "mode", Mode }, { "peerId", peer },
+                { "gameDir", GameDir }, { "mode", Mode }, { "peerId", peer },
                 { "gameRunning", GameAlive }, { "gamePid", GamePid }, { "myId", MyId }, { "launching", Launching },
                 { "game2Running", Game2Alive }, { "gamePid2", GamePid2 }, { "relayAvailable", File.Exists(Relay) },
                 { "runtimeRunning", RuntimeAlive }, { "connected", Connected }, { "ping", Ping }, { "loss", Loss }, { "problem", Problem },
@@ -388,7 +386,8 @@ namespace KH2Coop
             var env = new Dictionary<string, string> { { "SteamAppId", "2552430" }, { "SteamGameId", "2552430" }, { "KH2COOP_PUPPET_TRACE", "1" }, { "KH2COOP_AVATAR_DIAG", "1" } };
             if (!local) env["KH2COOP_STEAM_BROKER"] = "1";
             env["KH2COOP_CAST_REPLAY"] = CastReplay ? "1" : "0";
-            if (CloneMode) { env["KH2COOP_PARTY_NATIVE"] = "1"; env["KH2COOP_NATIVE_SORA_PRIVATE_STATUS"] = "1"; env["KH2COOP_CLONE_NEUTRAL_INPUT"] = "1"; env["KH2COOP_ALLY_HIT"] = "1"; }
+            // The other player is always a second Sora (one-clone party).
+            env["KH2COOP_PARTY_NATIVE"] = "1"; env["KH2COOP_NATIVE_SORA_PRIVATE_STATUS"] = "1"; env["KH2COOP_CLONE_NEUTRAL_INPUT"] = "1"; env["KH2COOP_ALLY_HIT"] = "1";
             int count = local ? 2 : 1;
             Log(local ? "Starting two copies of KH2 (solo test)..." : "Starting KH2...");
             Launching = true;
@@ -552,10 +551,8 @@ namespace KH2Coop
             {
                 case "start":
                     if (str("gameDir") != null) GameDir = str("gameDir");
-                    if (c.TryGetValue("cloneMode", out v) && v is bool) CloneMode = (bool)v;
                     SaveSettings(); if (!GameAlive && !Launching) StartGame(); break;
                 case "setGameDir": if (!GameAlive && str("gameDir") != null) { GameDir = str("gameDir").Trim(new[] { '"' }); SaveSettings(); } break;
-                case "setClone": if (!GameAlive && c.TryGetValue("cloneMode", out v) && v is bool) { CloneMode = (bool)v; SaveSettings(); } break;
                 case "setMode": if (!RuntimeAlive && !GameAlive) { string m = str("mode"); Mode = (m == "join" || m == "local") ? m : "host"; SaveSettings(); } break;
                 case "setPeer": if (!RuntimeAlive) { if (Mode == "join") HostId = str("peerId") ?? ""; else if (Mode != "local") FriendId = str("peerId") ?? ""; SaveSettings(); } break;
                 case "browse":
